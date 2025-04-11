@@ -1,4 +1,3 @@
-from fastapi.middleware.cors import CORSMiddleware
 from fastapi import FastAPI, File, UploadFile, HTTPException
 import whisper
 from transformers import pipeline
@@ -9,13 +8,6 @@ import time
 
 # Initialize FastAPI
 app = FastAPI()
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["http://localhost:3000"],  # Or ["*"] for all (less secure)
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
 
 # Configure logging
 logging.basicConfig(
