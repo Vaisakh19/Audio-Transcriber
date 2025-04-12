@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
+import '../src/App.css'; // Import the CSS file for styling
 
 function FileUpload() {
   const [selectedFile, setSelectedFile] = useState(null);
   const [transcription, setTranscription] = useState('');
   const [summary, setSummary] = useState('');
+  const [loading, setLoading] = useState(false);  // new state for loader
 
   const handleFileChange = (event) => {
     setSelectedFile(event.target.files[0]);
@@ -17,6 +19,8 @@ function FileUpload() {
 
     const formData = new FormData();
     formData.append("file", selectedFile); // 'file' must match FastAPI's param name
+
+    setLoading(true); // show loader when request starts
 
     try {
       const response = await fetch("http://localhost:5000/transcribe", {
@@ -35,6 +39,8 @@ function FileUpload() {
     } catch (err) {
       console.error("Error uploading file:", err);
       alert("Upload failed. See console for details.");
+    } finally {
+      setLoading(false); // hide loader after everything finishes
     }
   };
 
@@ -44,6 +50,10 @@ function FileUpload() {
       <br /><br />
       <button onClick={handleUpload}>Upload & Summarize</button>
       <br /><br />
+
+      {loading && <div className="loader"></div>}
+
+
       {transcription && (
         <>
           <h2>Transcription:</h2>
