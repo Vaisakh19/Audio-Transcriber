@@ -46,10 +46,17 @@ function FileUpload() {
 
   return (
     <div style={{ textAlign: "center", marginTop: "50px" }}>
+
       <input type="file" onChange={handleFileChange} accept=".mp3,.wav,.m4a" />
       <br /><br />
-      <button onClick={handleUpload}>Upload & Summarize</button>
+      <button onClick={handleUpload} disabled={loading}>
+      {loading ? "Processing..." : "Upload & Summarize"}
+      </button>
+
       <br /><br />
+      <footer style={{ marginTop: "500px", fontSize: "0.9em", color: "gray" }}>
+      Made with ❤️ using React and FastAPI
+    </footer>
 
       {loading && <div className="loader"></div>}
 
@@ -67,7 +74,9 @@ function FileUpload() {
         </>
       )}
     </div>
+    
   );
+  
 }
 
 export default FileUpload;
