@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
 import '../src/App.css'; // Import the CSS file for styling
 
-function FileUpload() {
+function FileUpload({onResult}) {
   const [selectedFile, setSelectedFile] = useState(null);
   const [transcription, setTranscription] = useState('');
   const [summary, setSummary] = useState('');
   const [loading, setLoading] = useState(false);  // new state for loader
+  const [processingTime, setProcessingTime] = useState(0);
 
   const handleFileChange = (event) => {
     setSelectedFile(event.target.files[0]);
@@ -36,6 +37,9 @@ function FileUpload() {
       const data = await response.json();
       setTranscription(data.transcription);
       setSummary(data.summary);
+      setProcessingTime(data.processing_time); // Get processing time from response
+      onResult(data.summary, data.transcription);  // Send summary + transcription to App
+
     } catch (err) {
       console.error("Error uploading file:", err);
       alert("Upload failed. See console for details.");
@@ -71,6 +75,12 @@ function FileUpload() {
         <>
           <h2>Summary:</h2>
           <p>{summary}</p>
+        </>
+      )}
+       {processingTime && (
+        <>
+          <h2>Processed in:</h2>
+          <p>{processingTime}</p>
         </>
       )}
     </div>
