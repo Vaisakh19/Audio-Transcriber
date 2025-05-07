@@ -6,8 +6,17 @@ import os
 import re
 import logging
 import time
+import asyncio
+from concurrent.futures import ThreadPoolExecutor
+# Initialize FastAPIexecutor = ThreadPoolExecutor()
+executor = ThreadPoolExecutor()
+async def run_blocking(fn, *args):
+    return await asyncio.get_event_loop().run_in_executor(executor, fn, *args)
 
-# Initialize FastAPI
+def chunk_text(text, max_tokens=900):
+    words = text.split()
+    return [" ".join(words[i:i + max_tokens]) for i in range(0, len(words), max_tokens)]
+
 app = FastAPI()
 app.add_middleware(
     CORSMiddleware,
@@ -47,52 +56,49 @@ def read_root():
 
 @app.post("/transcribe")
 async def transcribe_audio(file: UploadFile = File(...)):
-    start_time = time.time()  # Start timing
-
-    # Validate file extension
+    start_time = time.time()
     ext = os.path.splitext(file.filename)[-1].lower()
     if ext not in ALLOWED_EXTENSIONS:
-        logging.warning(f"Invalid file type: {file.filename}")
-        raise HTTPException(status_code=400, detail="Invalid file type. Only MP3, WAV, and M4A are allowed.")
+        raise HTTPException(status_code=400, detail="Invalid file type.")
 
-    # Check file size before saving
-    file_size = 0
-    content = await file.read()
-    file_size = len(content)
-
-    if file_size > MAX_FILE_SIZE:
-        logging.warning(f"File too large: {file.filename} ({file_size / (1024 * 1024):.2f} MB)")
-        raise HTTPException(status_code=400, detail="File is too large. Maximum allowed size is 200MB.")
-
-    # Save file securely
     safe_filename = sanitize_filename(file.filename)
     file_path = os.path.join("temp", safe_filename)
 
     try:
+        # Save file in chunks (better memory usage)
         with open(file_path, "wb") as buffer:
-            buffer.write(content)
+            while chunk := await file.read(1024 * 1024):  # 1MB chunks
+                buffer.write(chunk)
 
-        logging.info(f"File received: {file.filename} ({file_size / (1024 * 1024):.2f} MB)")
+        logging.info(f"Saved file: {file.filename}")
 
-        # Perform transcription
-        transcription = whisper_model.transcribe(file_path)["text"]
-
-        # Summarization
+        # Run Whisper transcription in background thread
+        transcription_result = await run_blocking(whisper_model.transcribe, file_path)
+        transcription = transcription_result["text"]
         transcription_length = len(transcription.split())
-        max_length = max(15, int(transcription_length * 0.5))
-        min_length = max(5, int(transcription_length * 0.2))
-        min_length = min(min_length, max_length - 5)
 
-        summary = summarizer(transcription, max_length=max_length, min_length=min_length, do_sample=False)[0]["summary_text"]
+        # Split and summarize in chunks
+        chunks = chunk_text(transcription)
+        summaries = [summarizer(chunk, max_length=130, min_length=30, do_sample=False)[0]["summary_text"]
+                     for chunk in chunks]
+        final_summary = " ".join(summaries)
 
-        logging.info(f"Transcription completed for {file.filename} in {time.time() - start_time:.2f} seconds")
+        summary_length = len(final_summary.split())
+        logging.info(f"Transcription & summary done in {time.time() - start_time:.2f}s")
+        processing_time = round(time.time() - start_time, 2)
 
-        return {"transcription": transcription, "summary": summary}
+        return {
+            "transcription": transcription,
+            "summary": final_summary,
+            "transcription_length": transcription_length,
+            "summary_length": summary_length,
+            "processing_time": processing_time
+        }
 
     except Exception as e:
-        logging.error(f"Error processing {file.filename}: {str(e)}")
-        raise HTTPException(status_code=500, detail="Internal server error during transcription.")
+        logging.error(f"Processing error: {str(e)}")
+        raise HTTPException(status_code=500, detail="Internal error during transcription.")
 
     finally:
         if os.path.exists(file_path):
-            os.remove(file_path)  # Clean up uploaded file
+            os.remove(file_path)
