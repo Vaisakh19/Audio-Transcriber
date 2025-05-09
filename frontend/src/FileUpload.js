@@ -49,43 +49,58 @@ function FileUpload({onResult}) {
   };
 
   return (
-    <div style={{ textAlign: "center", marginTop: "50px" }}>
+    <div className="app-container">
+      <h1>🎧 Podcast Summarizer</h1>
+  
+      <div className="file-upload-wrapper">
+  <label htmlFor="file-upload" className="custom-file-upload">
+    📁 Choose Audio File
+  </label>
+  <input
+    id="file-upload"
+    type="file"
+    onChange={handleFileChange}
+    accept=".mp3,.wav,.m4a"
+  />
+  {selectedFile && <span className="file-name">{selectedFile.name}</span>}
+</div>
 
-      <input type="file" onChange={handleFileChange} accept=".mp3,.wav,.m4a" />
-      <br /><br />
+
+      <br />
       <button onClick={handleUpload} disabled={loading}>
-      {loading ? "Processing..." : "Upload & Summarize"}
+        {loading ? "Processing..." : "Upload & Summarize"}
       </button>
-
-      <br /><br />
-      <footer style={{ marginTop: "500px", fontSize: "0.9em", color: "gray" }}>
-      Made with ❤️ using React and FastAPI
-    </footer>
-
+  
       {loading && <div className="loader"></div>}
-
-
+  
       {transcription && (
-        <>
-          <h2>Transcription:</h2>
-          <p>{transcription}</p>
-        </>
-      )}
-      {summary && (
-        <>
-          <h2>Summary:</h2>
-          <p>{summary}</p>
-        </>
-      )}
-       {processingTime && (
-        <>
-          <h2>Processed in:</h2>
-          <p>{processingTime}</p>
-        </>
-      )}
+  <>
+    <h2>Transcription:</h2>
+    <pre className="text-box">{transcription}</pre>
+  </>
+)}
+{summary && (
+  <>
+    <h2>Summary:</h2>
+    <pre className="text-box">{summary}</pre>
+  </>
+)}
+
+  
+  {processingTime > 0 && (
+  <>
+    <h2>Processed in:</h2>
+    <p>{processingTime}</p>
+  </>
+)}
+
+  
+      <footer>
+        Made with ❤️ using React and FastAPI
+      </footer>
     </div>
-    
   );
+  
   
 }
 
