@@ -36,7 +36,7 @@ logging.basicConfig(
 )
 
 # Load models
-whisper_model = whisper.load_model("base")  # Consider "medium" or "large-v3" for better accuracy
+whisper_model = whisper.load_model("medium")  # Consider "medium" or "large-v3" for better accuracy
 summarizer = pipeline("summarization", model="facebook/bart-large-cnn")
 
 # Directories and constraints
